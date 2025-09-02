@@ -1,128 +1,112 @@
-# 📘 Configuration d'Active Directory sur Windows Server 2022 dans VirtualBox
+# Installation & configuration d’un Active Directory sous Windows Server 2022 (VirtualBox)
 
-## 🧰 Prérequis
-
-### Matériel
-- PC avec **au moins 8 Go de RAM**, 50 Go d’espace disque libre
-- Processeur compatible avec la virtualisation (VT-x/AMD-V activé dans le BIOS)
-
-### Logiciel
-- **VirtualBox** installé (dernière version recommandée)
-- **Image ISO de Windows Server 2022**
-- Clé de licence (évaluation possible 180 jours)
-- Compte administrateur Windows
+Ce guide détaille, étape par étape, la mise en place d’un **contrôleur de domaine Active Directory (AD DS)** avec **DNS** dans une machine virtuelle **VirtualBox**.
 
 ---
 
-## 🖥️ Étape 1 : Création de la VM dans VirtualBox
+## 0) Prérequis
 
-1. Ouvrir VirtualBox > Cliquer sur **Nouvelle**.
-2. Nom : `WS2022-AD`  
-   Type : `Microsoft Windows`  
-   Version : `Windows 2022 (64-bit)`
-3. Allouer **4096 Mo (ou plus)** de RAM.
-4. Créer un disque dur virtuel (VDI), **40 Go ou plus**, en **dynamique**.
-5. Terminer la création.
+- **Matériel** : CPU x64, 8 Go de RAM (min. 4 Go pour démo), ≥ 60 Go de disque.
+- **Logiciels** : Oracle VirtualBox (dernière version), ISO **Windows Server 2022**.
+- **Réseau** : choisir un mode **Bridged** (recommandé pour que le DC soit joignable sur le LAN) ou **NAT + Port Forwarding** pour un labo isolé.
+- **Nom de domaine prévu** : par ex. `lab.local`.
 
----
-
-## 💽 Étape 2 : Installation de Windows Server 2022
-
-1. Aller dans les **paramètres** de la VM :
-   - Stockage > Ajouter un lecteur ISO (fichier ISO de Windows Server 2022).
-   - Réseau > Mode : `Accès par pont` ou `NAT avec redirection de port`.
-2. Démarrer la VM et suivre les étapes d’installation :
-   - Choisir : **Windows Server 2022 Standard (expérience Desktop)**
-   - Définir un mot de passe pour le compte `Administrateur`.
+> Astuce : pour un labo, commence simple puis durcis ensuite (NTP, sauvegardes, GPO, etc.).
 
 ---
 
-## 🧑‍💼 Étape 3 : Renommage et configuration IP
+## 1) Créer la VM Windows Server 2022 (VirtualBox)
 
-1. **Renommer le serveur** :
-   - Ouvrir PowerShell :
-     ```powershell
-     Rename-Computer -NewName "SRV-AD01" -Restart
-     ```
+### 1.1 Nom, ISO et type d’OS  
+Dans VirtualBox, **Nouvelle VM** → renseigne **Nom**, **dossier**, **ISO** et **Type = Microsoft Windows / Windows Server 2022 (64-bit)**.  
+_Voir la capture « Virtual machine Name and Operating System » 
+[Configuration du nom et ISO]
 
-2. **Attribuer une IP fixe** :
-   - Aller dans `Paramètres réseau` > `Ethernet` > Modifier l’adresse IP :
-     - Exemple :
-       - IP : `192.168.1.10`
-       - Masque : `255.255.255.0`
-       - Passerelle : `192.168.1.1`
-       - DNS préféré : `127.0.0.1`
+<img width="1966" height="1041" alt="Capture d'écran 2025-09-02 075206" src="https://github.com/user-attachments/assets/72df56f3-87b1-43ce-be0d-bcccfe1e8842" />
 
----
+**Pourquoi ?**  
+- Le type d’OS règle des options optimisées (chipset, horloge, pilotes).
 
-## 🛠️ Étape 4 : Installation du rôle Active Directory
+### 1.2 Ressources (RAM/CPU)  
+Affecte **RAM** (2 à 4 Go pour test, plus si possible) et **CPU** (1 à 2 vCPU suffisent pour un labo).  
+_Voir la capture « Hardware »   
+[Configuration RAM et CPU]
 
-1. Ouvrir **Server Manager** > `Manage` > `Add Roles and Features`
-2. Suivre l’assistant :
-   - Installation basée sur un rôle ou une fonctionnalité
-   - Sélectionner le serveur local
-   - Cochez **Active Directory Domain Services**
-   - Acceptez les dépendances
-   - Installer et attendre la fin.
+<img width="1965" height="1036" alt="Capture d'écran 2025-09-02 075238" src="https://github.com/user-attachments/assets/d1248e8d-09e0-498e-92d8-dabe8572d908" />
 
----
+**Bonnes pratiques**  
+- Laisse une marge pour l’hôte.  
+- Active EFI **uniquement** si tu sais pourquoi (sinon, reste en BIOS/MBR pour la simplicité).
 
-## 🏗️ Étape 5 : Promotion en contrôleur de domaine
+### 1.3 Disque virtuel  
+Crée un **VHD/VDI** de **50 Go min.** en taille dynamique.  
+_Voir la capture « Virtual Hard disk »  
+[Création du disque virtuel]
 
-1. Après l’installation, cliquez sur la notification `Promote this server to a domain controller`.
-2. Sélectionner :
-   - **Créer une nouvelle forêt**
-   - Nom de domaine racine : `monentreprise.local`
-3. Mot de passe du mode restauration (DSRM) : choisissez un mot de passe sécurisé.
-4. Laissez les options par défaut > Suivant jusqu’à la fin.
-5. Redémarrez à la fin du processus.
+<img width="1962" height="1038" alt="Capture d'écran 2025-09-02 075251" src="https://github.com/user-attachments/assets/e1755b9a-9c14-4a42-983c-ecd6910c1869" />
 
----
+### 1.4 Récapitulatif & création  
+Valide le **Résumé** et termine la création.  
+_Voir la capture « Récapitulatif »  
+[Récapitulatif VirtualBox]
 
-## 🔎 Étape 6 : Vérifications
+<img width="1958" height="1038" alt="Capture d'écran 2025-09-02 075301" src="https://github.com/user-attachments/assets/ffe6f3fe-bc1c-4077-a3a0-c023b1b8d35e" />
 
-1. Ouvrir **Server Manager** > Outils > `Active Directory Users and Computers` :
-   - Le domaine `monentreprise.local` doit apparaître.
-2. Outils > `DNS` :
-   - Le rôle DNS doit être installé et configuré.
-3. Invite de commande :
-   ```bash
-   nslookup
-   ping monentreprise.local
-   ```
+### 1.5 Vérification dans le Gestionnaire VirtualBox  
+Tu dois voir ta VM listée avec son stockage et réseau.  
+_Voir la capture « Oracle VirtualBox – Gestionnaire de machines »  
+[Vue VirtualBox]
+
+<img width="2375" height="1942" alt="Capture d'écran 2025-09-02 075322" src="https://github.com/user-attachments/assets/f12f0f8f-3a21-423e-b3ba-be5a89e0ae48" />
 
 ---
 
-## 👤 Étape 7 : Création d’un utilisateur de test
+## 2) Installer Windows Server 2022
 
-1. Ouvrir `Active Directory Users and Computers`
-2. Naviguer jusqu'à `Users` > Clic droit > `New` > `User`
-3. Remplir les champs :
-   - Nom : `Jean Dupont`
-   - Nom d’utilisateur : `jdupont`
-   - Définir un mot de passe
-   - Cocher “Password never expires” si nécessaire
-4. Tester la connexion avec cet utilisateur sur une machine cliente.
+1. **Démarre** la VM et **boote sur l’ISO**.  
+2. Choisis **langue/clavier**, clique **Installer**.  
+3. **Édition** : *Standard Evaluation* (GUI) pour un labo.  
+4. **Type d’installation** : *Custom* → sélectionne le disque et installe.  
+5. À la fin, crée le **mot de passe Administrateur** et connecte-toi.
 
----
-
-## 📎 Annexes
-
-### Outils utiles :
-- `dsa.msc` : Console AD utilisateurs/ordinateurs
-- `dnsmgmt.msc` : Console DNS
-- `gpmc.msc` : Gestion des stratégies de groupe
+> Astuce : prends un **hostname clair** dès maintenant (ex. `DC01`).  
+> Panneau de config → Système → Renommer ce PC → **DC01** → Redémarrer.
 
 ---
 
-## ✅ Résultat attendu
+## 3) Pré-config réseau (indispensable pour un DC)
 
-Votre Windows Server 2022 dans VirtualBox fonctionne en tant que **contrôleur de domaine** avec Active Directory opérationnel. Vous pouvez y rattacher des postes clients, gérer les utilisateurs et mettre en place des stratégies de groupe (GPO).
+1. **Adresse IP fixe** :  
+   - IPv4 : par ex. `192.168.1.10/24`  
+   - **Passerelle** : `192.168.1.1` (selon ton LAN)  
+   - **DNS** : mets **l’IP du futur DC** (donc **lui-même** : `192.168.1.10`)  
+2. **Désactive IPv6** (optionnel pour labo) si tu ne l’utilises pas.
+
+**Pourquoi ?**  
+AD et DNS ont besoin d’un **DNS stable** ; une IP dynamique casse la résolution.
 
 ---
 
-## 📢 Bonnes pratiques
+## 4) Ajouter les rôles AD DS et DNS
 
-- Sauvegardez régulièrement vos machines virtuelles.
-- Évitez d’utiliser des IP en conflit avec votre réseau réel.
-- Créez une **snapshot VirtualBox** après chaque étape importante.
+### 4.1 Via l’interface (Server Manager)
+Ouvre **Gestionnaire de serveur** → **Gérer** → **Ajouter des rôles et fonctionnalités**.  
+_Voir la capture du menu « Gérer »   
+[Menu Gérer]
+
+<img width="643" height="315" alt="Capture d'écran 2025-09-02 080628" src="https://github.com/user-attachments/assets/e29214a6-1a26-4238-b4b5-1bd399155be6" />
+
+**Assistant :**  
+- Type d’installation : **basée sur un rôle**  
+- Rôles : **Active Directory Domain Services** → ajoute les **Outils** si demandés  
+- Coche aussi **DNS Server** (sinon il te sera proposé durant la promotion DC)  
+- **Suivant** jusqu’au **redémarrage si nécessaire**
+
+<img width="1868" height="1569" alt="Capture d'écran 2025-09-02 075603" src="https://github.com/user-attachments/assets/5d2b0312-1176-4fc0-a238-44536c5d13b8" />
+
+
+### 4.2 Alternative PowerShell (équivalent)
+```powershell
+# À lancer en PowerShell Admin
+Install-WindowsFeature AD-Domain-Services -IncludeManagementTools
+Install-WindowsFeature DNS -IncludeManagementTools
